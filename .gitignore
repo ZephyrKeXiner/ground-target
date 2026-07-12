@@ -221,3 +221,5 @@ model/
 dependency/
 tmp_cusparselt/
 install_cusparselt.sh
+runs/
+video/
