@@ -1,4 +1,6 @@
 from ultralytics import YOLO
+from sahi.predict import get_prediction
+
 import cv2
 
 def gstreamer_pipeline(
@@ -20,7 +22,7 @@ def gstreamer_pipeline(
         f"video/x-raw, format=(string)BGR ! appsink drop=true sync=false"
     )
 
-model = YOLO("exp-3.engine")
+model = YOLO("./model/exp-3.engine")
 
 cap = cv2.VideoCapture(gstreamer_pipeline(sensor_id=0), cv2.CAP_GSTREAMER)
 
@@ -33,10 +35,11 @@ while True:
         print("Failed to read frame")
         break
 
-    results = model.predict(
+    results = model.track(
         source=frame,
+        tracker="bytetrack.yaml",
         imgsz=640,
-        conf=0.25,
+        conf=0.60,
         verbose=False,
     )
 
