@@ -1,0 +1,31 @@
+{
+  "camera": {
+    "calibrated": false,
+    "camera_id": "down_cam",
+    "image_width": 1280,
+    "image_height": 720,
+    "camera_matrix": [
+      [0.0, 0.0, 640.0],
+      [0.0, 0.0, 360.0],
+      [0.0, 0.0, 1.0]
+    ],
+    "distortion": [0.0, 0.0, 0.0, 0.0, 0.0],
+    "rotation_body_from_camera": [
+      [0.0, -1.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [0.0, 0.0, 1.0]
+    ],
+    "lever_arm_body_m": [0.0, 0.0, 0.0]
+  },
+  "geolocation": {
+    "bbox_anchor": "bottom_center",
+    "agl_source": "auto",
+    "ground_alt_msl_m": null,
+    "fixed_agl_m": null,
+    "allow_relative_alt_fallback": false,
+    "max_pose_age_ms": 150,
+    "max_altitude_sensor_age_ms": 500,
+    "min_ray_down_component": 0.15,
+    "debug_sensitivity": true
+  }
+}
