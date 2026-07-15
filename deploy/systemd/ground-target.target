@@ -1,0 +1,8 @@
+[Unit]
+Description=Jetson ground-target detection and geolocation pipeline
+Requires=ground-target-prepare.service
+Wants=ground-target-controller.service ground-target-yolo.service
+After=ground-target-prepare.service
+
+[Install]
+WantedBy=multi-user.target

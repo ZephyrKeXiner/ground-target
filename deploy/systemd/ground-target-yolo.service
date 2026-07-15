@@ -1,0 +1,33 @@
+[Unit]
+Description=Ground-target IMX219 YOLO bbox sender
+PartOf=ground-target.target
+Requires=ground-target-prepare.service
+After=ground-target-prepare.service ground-target-controller.service nvargus-daemon.service
+Wants=ground-target-controller.service nvargus-daemon.service
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=20s
+TimeoutStartSec=60s
+TimeoutStopSec=15s
+User=argus
+Group=argus
+WorkingDirectory=/home/argus/ai
+Environment=PYTHONUNBUFFERED=1
+Environment=CUDA_MODULE_LOADING=LAZY
+EnvironmentFile=-/etc/ground-target/ground-target.env
+ExecStart=/home/argus/ai/.venv/bin/python -m target_geolocation.service_entrypoint yolo
+Restart=on-failure
+RestartSec=3s
+RestartPreventExitStatus=78
+KillSignal=SIGINT
+KillMode=mixed
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectControlGroups=true
+ProtectKernelTunables=true
+

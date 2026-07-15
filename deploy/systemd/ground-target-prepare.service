@@ -1,0 +1,22 @@
+[Unit]
+Description=Prepare one ground-target recording session
+PartOf=ground-target.target
+Before=ground-target-controller.service ground-target-yolo.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=argus
+Group=argus
+WorkingDirectory=/home/argus/ai
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/ground-target/ground-target.env
+RuntimeDirectory=ground-target
+RuntimeDirectoryMode=0755
+ExecStart=/home/argus/ai/.venv/bin/python -m target_geolocation.service_entrypoint prepare
+RemainAfterExit=yes
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectControlGroups=true
+ProtectKernelTunables=true
+

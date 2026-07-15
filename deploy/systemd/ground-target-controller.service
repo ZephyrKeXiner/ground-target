@@ -1,0 +1,32 @@
+[Unit]
+Description=Ground-target MAVLink geolocation controller
+PartOf=ground-target.target
+Requires=ground-target-prepare.service
+After=ground-target-prepare.service network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=20s
+TimeoutStartSec=30s
+TimeoutStopSec=15s
+User=argus
+Group=argus
+WorkingDirectory=/home/argus/ai
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/ground-target/ground-target.env
+ExecStart=/home/argus/ai/.venv/bin/python -m target_geolocation.service_entrypoint controller
+Restart=on-failure
+RestartSec=3s
+RestartPreventExitStatus=78
+KillSignal=SIGINT
+KillMode=mixed
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectControlGroups=true
+ProtectKernelTunables=true
+
