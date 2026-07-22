@@ -1,5 +1,64 @@
 # ground-target systemd部署
 
+## 最小化IMX219开机录像服务
+
+仅采集训练视频时，使用独立服务，不要求MAVLink、YOLO或相机标定：
+
+```bash
+cd ~/ai
+sudo ./deploy/systemd/install_video.sh
+```
+
+默认参数：
+
+```text
+传感器3280×2464，逆时针旋转90°后保存为2464×3280
+21 FPS，H.264 Matroska，码率50 Mbps
+自动曝光13～2000 µs（最长约1/500秒）
+输出目录：/home/argus/ai/training_videos
+磁盘保护：剩余空间低于5 GiB自动结束当前录像
+卡死保护：文件30秒不增长则失败，由systemd在5秒后重启
+```
+
+最高模式实测约占用356 MB/分钟（约21 GB/小时）。这台Jetson没有H.264硬件
+编码器，因此使用`x264enc ultrafast`软件编码。服务会保留最后5 GiB空间，避免
+录像写满系统盘。
+
+调整体积和画质时修改`/etc/ground-target/video.env`中的码率后重启服务：
+
+```text
+GROUND_TARGET_VIDEO_BITRATE_KBPS=50000
+GROUND_TARGET_VIDEO_ROTATION=counterclockwise90
+GROUND_TARGET_VIDEO_EXPOSURE_MIN_US=13
+GROUND_TARGET_VIDEO_EXPOSURE_MAX_US=2000
+```
+
+训练素材建议保持50000；低于40000时，8MP运动画面中的小目标纹理可能明显
+损失。50 Mbps仍比原MJPEG实测体积小约6倍。
+
+每次服务启动创建新文件，不会覆盖旧视频：
+
+```text
+imx219_20260720T120000Z_3280x2464_21fps.mkv
+imx219_20260720T120000Z_3280x2464_21fps.json
+```
+
+管理命令：
+
+```bash
+systemctl status ground-target-video.service
+journalctl -fu ground-target-video.service
+sudo systemctl restart ground-target-video.service
+sudo systemctl stop ground-target-video.service
+```
+
+录像服务独占IMX219，并与`ground-target-yolo.service`声明为冲突单元。需要恢复
+YOLO时，先停止并禁用独立录像：
+
+```bash
+sudo systemctl disable --now ground-target-video.service
+```
+
 服务拆成三个单元：
 
 - `ground-target-prepare.service`：验证配置并为本次启动创建独立记录目录；

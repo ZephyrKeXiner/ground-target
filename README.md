@@ -117,3 +117,36 @@ YOLO运行时可以同时保存未画框的原始训练视频：
 默认使用Jetson的`nvjpegenc`写入分段MJPEG AVI；视频之外还会生成
 `video_frames.ndjson`，用于对应源帧编号和采集时间。systemd环境默认开启该功能，
 保存到`runs/latest/training_video`。
+
+### 最小化最高分辨率开机录像
+
+如果当前只需要采集训练素材，不运行YOLO，使用独立服务：
+
+```bash
+cd ~/ai
+sudo ./deploy/systemd/install_video.sh
+```
+
+它会在每次服务启动时新建一个`3280×2464@21 FPS` H.264 MKV，并持续录像到
+服务停止或磁盘剩余5 GiB。文件在`~/ai/training_videos`。该服务独占IMX219，不能
+和`ground-target-yolo.service`同时运行。
+
+相机原始画面的顶部指向飞机左侧；录像管线会逆时针旋转90°，因此保存视频为
+`2464×3280`竖屏，视频顶部指向机头正前方。默认自动曝光范围为13～2000 µs，
+即最长约1/500秒，用于减小飞行中的运动模糊。
+
+默认码率50 Mbps，最高模式实测约占用356 MB/分钟（约21 GB/小时）。这台Jetson
+没有H.264硬件编码器，独立录像服务使用`x264enc ultrafast`软件编码；它不与YOLO
+同时运行，因此把CPU优先用于压缩录像。训练画面不建议低于40 Mbps；12 Mbps在
+8MP运动或高噪声画面中会产生明显宏块并丢失小目标纹理。
+
+本机安装约定为镜头向下、图像上方指向飞机左侧，即相对机头左偏90°。在当前
+OpenCV相机坐标到ArduPilot FRD机体坐标的定义中：
+
+```json
+"rotation_body_from_camera": [
+  [1.0, 0.0, 0.0],
+  [0.0, 1.0, 0.0],
+  [0.0, 0.0, 1.0]
+]
+```

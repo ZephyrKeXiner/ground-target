@@ -1,0 +1,32 @@
+[Unit]
+Description=IMX219 full-resolution training video recorder
+After=local-fs.target nvargus-daemon.service
+Wants=nvargus-daemon.service
+Conflicts=ground-target-yolo.service
+StartLimitIntervalSec=60
+StartLimitBurst=6
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=20s
+TimeoutStartSec=60s
+TimeoutStopSec=15s
+User=argus
+Group=argus
+WorkingDirectory=/home/argus/ai
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/ground-target/video.env
+ExecStart=/home/argus/ai/.venv/bin/python /home/argus/ai/record_training_video.py
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGINT
+KillMode=mixed
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectControlGroups=true
+ProtectKernelTunables=true
+
+[Install]
+WantedBy=multi-user.target
