@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from pathlib import Path
-
-from detector import *
-from config import *
-from tracker import *
 
 import cv2 as cv
 import numpy as np
-from ultralytics import YOLO
 
-DEFAULT_VIDEO = Path(__file__).resolve().parent / "video" / "test_video.mp4"
+from config import CropConfig
+from detector import TargetDetector
+from registry import TargetRegistry
+from tracker import TargetTracker
+from utils import crop_and_enhance_target
+
+
+DEFAULT_VIDEO = (
+    Path(__file__).resolve().parent.parent
+    / "video"
+    / "test_video.mp4"
+)
+
 
 def add_title(image: np.ndarray, title: str) -> np.ndarray:
     result = image.copy()
@@ -68,18 +74,17 @@ def run_video(video_path: Path) -> int:
 
     detector = TargetDetector()
     tracker = TargetTracker()
+    registry = TargetRegistry()
     crop_config = CropConfig()
     confirmed_crops: dict[str, np.ndarray] = {}
+    track_target_ids: dict[int, int] = {}
 
-    fps = cap.get(cv.CAP_PROP_FPS)
-    frame_delay = max(1, round(1000 / fps)) if fps > 0 else 30
     paused = False
     display: np.ndarray | None = None
 
     print(f"Video: {video_path}")
     print("Controls: Space/P pause, Q/Esc quit")
     cv.namedWindow("Pentagon Fitting", cv.WINDOW_NORMAL)
-    # model = YOLO("../model/exp-seg-1.pt")
 
     try:
         while cap.isOpened():
@@ -89,26 +94,65 @@ def run_video(video_path: Path) -> int:
                     break
 
                 analysis = detector.analyze(frame)
-                newly_confirmed = tracker.update(
-                    analysis.strict_detections,
-                    analysis.perspective_detections,
-                )
-                tracker.draw_status(analysis.debug_view)
+                newly_confirmed = tracker.update(analysis.detections)
 
+                for track in tracker.tracks:
+                    target_id = track_target_ids.get(track.track_id)
+                    if (
+                        target_id is not None
+                        and track.confirmed
+                        and track.missed_frames == 0
+                    ):
+                        registry.observe(
+                            target_id,
+                            frame,
+                            track.detection,
+                        )
+
+                visible_target_ids = {
+                    track_target_ids[track.track_id]
+                    for track in tracker.tracks
+                    if (
+                        track.confirmed
+                        and track.missed_frames == 0
+                        and track.track_id in track_target_ids
+                    )
+                }
                 for track in newly_confirmed:
-                    window_name = f"Target {track.track_id}"
+                    (
+                        target_id,
+                        is_new_target,
+                        match_description,
+                    ) = registry.resolve(
+                        frame,
+                        track.detection,
+                        visible_target_ids,
+                    )
+                    track_target_ids[track.track_id] = target_id
+                    visible_target_ids.add(target_id)
+
+                    window_name = f"Target {target_id}"
                     confirmed_crops[window_name] = crop_and_enhance_target(
                         frame,
                         track.detection.polygon,
                         crop_config,
                     )
-                    # model.predict(
-                    #     frame,
-                        
-                    # )
-                    cv.namedWindow(window_name, cv.WINDOW_AUTOSIZE)
-                    print(f"Confirmed target {track.track_id}")
+                    if is_new_target:
+                        cv.namedWindow(
+                            window_name,
+                            cv.WINDOW_AUTOSIZE,
+                        )
+                        print(f"Confirmed new target {target_id}")
+                    else:
+                        print(
+                            f"Reidentified target {target_id} "
+                            f"({match_description})"
+                        )
 
+                tracker.draw_status(
+                    analysis.debug_view,
+                    track_target_ids,
+                )
                 display = build_view(frame, analysis.debug_view)
 
             if display is not None:
@@ -116,7 +160,7 @@ def run_video(video_path: Path) -> int:
             for window_name, crop in confirmed_crops.items():
                 cv.imshow(window_name, crop)
 
-            key = cv.waitKey(frame_delay) & 0xFF
+            key = cv.waitKey(30 if paused else 1) & 0xFF
             if key in (ord(" "), ord("p"), ord("P")):
                 paused = not paused
             elif key in (ord("q"), ord("Q"), 27):

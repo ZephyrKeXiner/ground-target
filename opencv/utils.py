@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
-from config import *
-
-import numpy as np
 import cv2 as cv
+import numpy as np
+
+from config import CropConfig, DetectorConfig
+
 
 @dataclass
 class AdaptiveSVThreshold:
@@ -53,7 +54,6 @@ class FrameMasks:
     brightness: np.ndarray
     red: np.ndarray
     blue: np.ndarray
-    white: np.ndarray
 
     @property
     def color(self) -> np.ndarray:
@@ -64,7 +64,6 @@ class FrameMasks:
 class Detection:
     polygon: np.ndarray
     target_color: str
-    mode: str
     apex_index: int = -1
 
     @property
@@ -79,9 +78,9 @@ class Detection:
 @dataclass
 class FrameAnalysis:
     debug_view: np.ndarray
-    strict_detections: list[Detection]
-    perspective_detections: list[Detection]
-    
+    detections: list[Detection]
+
+
 def otsu_threshold(samples: np.ndarray, min_samples: int) -> float | None:
     """从一维像素样本的直方图计算 Otsu 分界。"""
     if samples.size < min_samples:

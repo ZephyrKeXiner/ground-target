@@ -4,7 +4,7 @@ from dataclasses import dataclass
 class DetectorConfig:
     """目标分割与几何筛选参数。"""
 
-    min_shape_area: float = 300.0
+    min_shape_area: float = 400
     max_shape_area: float = 50_000.0
 
     red_hue_ranges: tuple[tuple[int, int], ...] = ((0, 15), (155, 179))
@@ -15,15 +15,6 @@ class DetectorConfig:
     min_color_ratio: float = 0.18
     min_component_pixels: int = 60
     min_component_ratio: float = 0.10
-
-    perspective_min_color_ratio: float = 0.25
-    perspective_min_component_ratio: float = 0.15
-    perspective_min_solidity: float = 0.65
-    perspective_max_aspect_ratio: float = 3.5
-    perspective_min_white_ratio: float = 0.05
-
-    white_max_saturation: int = 65
-    white_min_value: int = 120
 
     initial_saturation: float = 80.0
     initial_value: float = 35.0
@@ -38,9 +29,37 @@ class TrackerConfig:
     """跨帧匹配与确认参数。"""
 
     confirmation_frames: int = 3
-    max_missed_frames: int = 2
-    match_distance_ratio: float = 1.5
+    max_missed_frames: int = 15
+    match_distance_ratio: float = 2.0
     max_size_ratio: float = 3.0
+
+
+@dataclass(frozen=True)
+class RegistryConfig:
+    """目标离开视野后重新出现时的场景与外观匹配参数。"""
+
+    rectified_size: int = 96
+    signature_size: int = 48
+    number_roi: tuple[float, float, float, float] = (
+        0.25,
+        0.20,
+        0.75,
+        0.80,
+    )
+    max_hash_distance: int = 14
+    min_correlation: float = 0.78
+    max_signatures_per_target: int = 8
+
+    scene_max_width: int = 960
+    scene_orb_features: int = 1800
+    scene_fast_threshold: int = 12
+    scene_ratio_test: float = 0.72
+    scene_min_matches: int = 12
+    scene_min_inliers: int = 12
+    scene_min_inlier_ratio: float = 0.50
+    scene_max_position_error: float = 0.65
+    scene_max_scale_ratio: float = 3.0
+    max_scene_signatures_per_target: int = 6
 
 
 @dataclass(frozen=True)
